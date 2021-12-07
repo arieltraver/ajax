@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name=author content="Scott Anderson and Soo Bin Kim">
+    <title>Rate Movies</title>
+    <link rel='stylesheet' href="{{url_for('static', filename = 'movie-style.css')}}">
+    {% block head_stuff %} {% endblock %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+var url_to_rate = "{{url_for('rate_movie_ajax')}}"; 
+var url_for_rating = "{{url_for('rating',tt='')}}";
+var uid = "{{uid}}";  // for console.log message
+var progressive_on = false;
+
+    $(function () {
+        $("#progressive_enhancement").on('click', function () {
+            if(progressive_on) {
+                // turn it off
+                $("input[name=stars],input[type=submit]").show();
+                $("#progressive_enhancement").text('Turn on Progressive Enhancement');
+                progressive_on = false;
+            } else {
+                // turn it on
+                $("input[name=stars],input[type=submit]").hide();
+                $("#progressive_enhancement").text('Turn off Progressive Enhancement');
+                progressive_on = true;
+            }
+        });
+    });
+</script>
+<script src="{{url_for('static',filename='rate.js')}}"></script>
+</head>
+<body>
+    
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div id="flashes">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>    
+    {% endif %}
+{% endwith %}
+
+{% block main_content %}
+    <h1>Welcome!</h1>
+
+    <p>"Login" using the form below by entering your UID in the WMDB,
+    or, in fact, any UID, which will then take you to the movies
+    page. Try 11 or 12.</p>
+
+<p><form action="{{url_for('setUID')}}" method="POST">
+    <input type="text" name="uid" placeholder="12">
+</form></p>
+
+
+{% endblock %}
+{% block tail %}
+{% endblock %}
+
+</body>
+</html>

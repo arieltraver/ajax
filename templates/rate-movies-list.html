@@ -1,0 +1,53 @@
+{% extends "movies-base.html" %}
+{% block main_content %}
+
+{% if uid %}
+<h2>Logged in as User {{uid}}</h2>
+{% else %}
+<h2>Need to Login</h2>
+{% endif %}
+
+<p>This application is rating movies in the <strong>{{database}}</strong> database.</p>
+
+<p>This button turns on/off all the JavaScript:
+    <button id="progressive_enhancement">Turn On Progressive Enhancement</button></p>
+
+<h1>List of Movies</h1>
+
+<style>
+  table { border-collapse: collapse; }
+  td, th { border: 1px solid black; }
+  td:last-child { padding-left: 1em; }
+</style>
+
+<table id="movies-list">
+    <tr>
+        <th>(tt) Title</th>
+        <th>Director</th>
+        <th>Release</th>
+        <th>My Rating</th>
+        <th>Average</th>
+    </tr>
+    {% for mv in movies %}
+    <tr data-tt={{mv.tt}}>
+        <td class="title">({{mv.tt}}) {{mv.title}}</td>
+        <td class="director">{{mv.name}}</td>
+        <td class="release">{{mv.release}}</td>
+        <td><form method="post" action="{{url_for('rate_movie')}}">
+            <input type="hidden" name="tt" value="{{mv.tt}}">
+            {% for stars in range(1,6) %}
+            <label class="movie-rating">{{stars}}
+                <input type="radio" name="stars" value="{{stars}}"></label>
+            {% endfor %}
+            <input type="submit" value="rate this">
+            </form>
+        </td>
+        <td><span class="avgrating">{{mv.avgrating}}</span></td>
+    </tr>
+    {% endfor %}
+</table>
+ 
+{% endblock %}
+
+{% block tail %}
+{% endblock %}
