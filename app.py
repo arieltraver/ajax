@@ -43,29 +43,32 @@ def rate_movie():
         curs.execute('''select * from movie''')
         rows = curs.fetchall()
         #check in console
-        print(rows[0])
+        #print(rows[0])
         return render_template('rate-movies-list.html', uid=session['UID'], database='tg2_db', movies=rows)
     elif request.method == 'POST':
-        conn = dbi.connect()
-        curs = dbi.dict_cursor(conn)
-        curs.execute('''insert into ratings values (%s, %s, %s) on duplicate key update rate = %s;''', 
-                        [session['UID'], request.form['tt'], request.form['stars'], request.form['stars']])
-        curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [request.form['tt']])
-        newAvg = curs.fetchone()['newAvg']
-        print(newAvg)
-        curs.execute('''update movie set avgrating=%s where tt=%s''', [float(newAvg), request.form['tt']])
-        conn.commit()
+        if not session['UID']:
+            print(session['UID'])
+            flash("Sorry, you need to login before you can start rating movies!")
+            return redirect(url_for('setUID'))
+        else:
+            conn = dbi.connect()
+            curs = dbi.dict_cursor(conn)
+            curs.execute('''insert into ratings values (%s, %s, %s) on duplicate key update rate = %s;''', 
+                            [session['UID'], request.form['tt'], request.form['stars'], request.form['stars']])
+            curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [request.form['tt']])
+            newAvg = curs.fetchone()['newAvg']
+            curs.execute('''update movie set avgrating=%s where tt=%s''', [float(newAvg), request.form['tt']])
+            conn.commit()
 
-        curs.execute('''select avgrating from movie where tt=%s''', [request.form['tt']])
-        row = curs.fetchone()
+            curs.execute('''select avgrating from movie where tt=%s''', [request.form['tt']])
+            row = curs.fetchone()
 
-        curs.execute('''select * from movie''')
-        rows = curs.fetchall()
-        #STOPPED HERE: ISSUE IS THAT WHEN YOU RELOAD NEW RATING WON'T SHOW IN COLUMN 
-        
-        print(row)
-        flash('user {} is rating movie {} as {} stars. new average is {}'.format(session['UID'], request.form['tt'], request.form['stars'], row['avgrating']))
-        return render_template('rate-movies-list.html', uid=session['UID'], database='tg2_db', movies=rows)
+            curs.execute('''select * from movie''')
+            rows = curs.fetchall()
+            #STOPPED HERE: ISSUE IS THAT WHEN YOU RELOAD NEW RATING WON'T SHOW IN COLUMN 
+            
+            flash('user {} is rating movie {} as {} stars. new average is {}'.format(session['UID'], request.form['tt'], request.form['stars'], row['avgrating']))
+            return render_template('rate-movies-list.html', uid=session['UID'], database='tg2_db', movies=rows)
 
 @app.route('/rateMovieAjax/')
 def rate_movie_ajax():

@@ -8,7 +8,7 @@ create table ratings (
     rate int(1),
     foreign key (uid) references staff(uid),
     foreign key (tt) references movie(tt),
-    primary key (nm, tt)
+    primary key (uid, tt)
 );
 
 alter table movie
