@@ -65,38 +65,90 @@ def rate_movie():
 
             curs.execute('''select * from movie''')
             rows = curs.fetchall()
-            #STOPPED HERE: ISSUE IS THAT WHEN YOU RELOAD NEW RATING WON'T SHOW IN COLUMN 
             
             flash('user {} is rating movie {} as {} stars. new average is {}'.format(session['UID'], request.form['tt'], request.form['stars'], row['avgrating']))
             return render_template('rate-movies-list.html', uid=session['UID'], database='tg2_db', movies=rows)
 
-@app.route('/rateMovieAjax/')
+@app.route('/rateMovieAjax/', methods = ['GET', 'POST'])
 def rate_movie_ajax():
-    return render_template('movies-base.html')
+    if request.method == 'GET':
+        conn = dbi.connect()
+        curs = dbi.dict_cursor(conn)
+        curs.execute('''select * from movie''')
+        rows = curs.fetchall()
+        #check in console
+        #print(rows[0])
+        return render_template('rate-movies-list.html', uid=session['UID'], database='tg2_db', movies=rows)
+    elif request.method == 'POST':
+        if not session['UID']:
+            print(session['UID'])
+            return redirect(url_for('setUID'))
+        else:
+            conn = dbi.connect()
+            curs = dbi.dict_cursor(conn)
+            curs.execute('''insert into ratings values (%s, %s, %s) on duplicate key update rate = %s;''', 
+                            [session['UID'], request.form['tt'], request.form['stars'], request.form['stars']])
+            curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [request.form['tt']])
+            newAvg = curs.fetchone()['newAvg']
+            curs.execute('''update movie set avgrating=%s where tt=%s''', [float(newAvg), request.form['tt']])
+            conn.commit()
+
+            curs.execute('''select avgrating from movie where tt=%s''', [request.form['tt']])
+            row = curs.fetchone()
+
+            tt = request.form['tt']
+            average = row['avgrating']
+            print(average)
+            print(tt)
+            return jsonify({'avg': average, 'tt': tt})
+
+#pretty sure these next 2 are wrong, i think i'm a little confused as to what the purpose
+#of the REST functions is and also how exactly we're expected to implement them
 
 @app.route('/rating/', methods=['POST'])
-def rating(uid):
-    tt = request.form['tt']
-    stars = request.form['stars']
-    return {'tt': tt, 'stars': stars}
+def rating():
+    if not session['UID']:
+        print(session['UID'])
+        return redirect(url_for('setUID'))
+    else:
+        conn = dbi.connect()
+        curs = dbi.dict_cursor(conn)
+        curs.execute('''insert into ratings values (%s, %s, %s) on duplicate key update rate = %s;''', 
+                            [session['UID'], request.form['tt'], request.form['stars'], request.form['stars']])
+        curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [request.form['tt']])
+        newAvg = curs.fetchone()['newAvg']
+        curs.execute('''update movie set avgrating=%s where tt=%s''', [float(newAvg), request.form['tt']])
+        conn.commit()
 
-# @app.route('/rating/<tt>/' methods=['GET', 'PUT', 'DELETE'])
-# def rating(tt):
-#     conn = dbi.connect()
-#     curs = dbi.dict_cursor(conn)
-#     if request.method == 'GET':
-#         curs.execute('''select rating from movie where tt=%s''', [tt])
-#         currentAvg = curs.fetchone()
-#         return currentAvg
-#     elif request.method == 'PUT':
-#         stars = request.form['stars']
-#         tt = tt
-#         currentAvg = url_for('rating', tt=tt)
-#         newAvg = (currentAvg + stars)/2
-#         curs.execute('''insert into movie (rating) values (%s)''', [newAvg]
-#         conn.commit()
-#         return 
-#     return render_template('movies-base.html')
+        curs.execute('''select avgrating from movie where tt=%s''', [request.form['tt']])
+        row = curs.fetchone()
+
+        tt = request.form['tt']
+        average = row['avgrating']
+        print(average)
+        print(tt)
+        return {'tt': tt, 'avg': average}
+
+@app.route('/rating/<tt>', methods = ['GET', 'PUT', 'DELETE'])
+def rating_tt(tt):
+    conn = dbi.connect()
+    curs = dbi.dict_cursor(conn)
+    if request.method == 'GET':
+        curs.execute('''select avgrating from movie where tt=%s''', [tt])
+        newAvg = curs.fetchone()['avgrating']
+        return newAvg
+    elif request.method == 'PUT':
+        stars = request.form['stars']
+        curs.execute('''insert into ratings values (%s, %s, %s) on duplicate key update rate = %s;''', 
+                        [session['UID'], tt, request.form['stars'], request.form['stars']]) 
+        curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [tt])
+        newAvg = curs.fetchone()['newAvg']
+        return newAvg
+    else:
+        curs.execute('''delete from ratings where tt=%s''', [tt])
+        curs.execute('''select avg(rate) as newAvg from ratings where tt=%s group by tt''', [tt])
+        newAvg = curs.fetchone()['newAvg']
+        return newAvg
 
 @app.before_first_request
 def init_db():
