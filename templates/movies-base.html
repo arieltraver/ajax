@@ -9,7 +9,8 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script>
 var url_to_rate = "{{url_for('rate_movie_ajax')}}"; 
-var url_for_rating = "{{url_for('rating',tt='')}}";
+var url_for_rating = "{{url_for('rating',tt=tt)}}";
+var url_for_post_rating = "{{url_for('rating')}}";
 var uid = "{{uid}}";  // for console.log message
 var progressive_on = false;
 

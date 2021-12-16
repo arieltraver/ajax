@@ -20,15 +20,8 @@
     var url_to_login = "{{url_for('login')}}"; 
     //var url_to_change_password = "{{url_for('join')}}"; 
     // this is incomplete. Need to append user and slash and key
-    var url_base = "{{url_for('user', username='', key='')}}";
+    var url_base = "{{url_for('user', username=username, key=key)}}";
     var user = null
-
-    //btw, the original in the url_for for user had user instead of username
-    
-    //im a little confused on how to set the user and key in the url here
-    //not sure where we're supposed to get the key value out of - 
-    //with the username, at least we can pull it out of the session but
-    //im confused with key
 
     function do_join(username, password) {
         $.post(url_to_join,

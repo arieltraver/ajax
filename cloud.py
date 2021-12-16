@@ -10,6 +10,7 @@ import cs304dbi as dbi
 # import cs304dbi_sqlite3 as dbi
 
 import random
+import bcrypt
 
 app.secret_key = 'your secret here'
 # replace that with a random key
@@ -27,71 +28,78 @@ def index():
 
 @app.route('/join/', methods=["POST"])
 def join():
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+
     username = request.form.get('username')
     passwd = request.form.get('password')
-    hashed = bcrypt.hashpw(passwd1.encode('utf-8'),
+    print(username)
+    print(passwd)
+    hashed = bcrypt.hashpw(passwd.encode('utf-8'),
                            bcrypt.gensalt())
     stored = hashed.decode('utf-8')
     print(passwd, type(passwd), hashed, stored)
-    conn = dbi.connect()
-    curs = dbi.cursor(conn)
     try:
-        curs.execute('''INSERT INTO userpass(uid,username,hashed)
-                        VALUES(null,%s,%s)''',
+        curs.execute('''INSERT INTO userpass(username,hashed)
+                        VALUES(%s,%s)''',
                      [username, stored])
         conn.commit()
+        return jsonify({'error': False, 'uid': username})
     except Exception as err:
-        flash('That username is taken: {}'.format(repr(err)))
-        return redirect(url_for('index'))
-    session['username'] = username
-    session['uid'] = uid
-    session['logged_in'] = True
+        error = 'That username is taken: {}'.format(repr(err))
+        return jsonify({'error': True, 'errmsg': error})
 
 @app.route('/login/', methods=["POST"])
 def login():
-    username = request.form.get('username')
-    passwd = request.form.get('password')
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute('''SELECT uid,hashed
+
+    username = request.form.get('username')
+    passwd = request.form.get('password')
+    
+    curs.execute('''SELECT username,hashed
                     FROM userpass
                     WHERE username = %s''',
                  [username])
     row = curs.fetchone()
     if row is None:
-        flash('login incorrect. Try again or join')
-        return redirect( url_for('index'))
+        error = "Hmm, that login is incorrect. Try again or join!"
+        return jsonify({'error': True, 'errmsg': error})
+    
     stored = row['hashed']
     hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
                             stored.encode('utf-8'))
     hashed2_str = hashed2.decode('utf-8')
     if hashed2_str == stored:
         session['username'] = username
-        session['uid'] = row['uid']
         session['logged_in'] = True
+        return jsonify({'error': False})
     else:
-        flash('login incorrect. Try again or join')
-        return redirect( url_for('index'))
+        error = 'login incorrect. Try again or join'
+        return jsonify({'error': True, 'errmsg': error})
 
 @app.route('/<username>/<key>', methods = ['GET', 'PUT', 'DELETE'])
-def user():
+def user(username, key):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    user = user
-    key = key
+
     if request.method == 'GET':
         curs.execute('''select userVal from userKeyVal where username=%s AND userKey=%s''', 
-                        [user, request.arg.get('key')])
+                        [username, key])
         value = curs.fetchone()['userVal']
-        return jsonify({'error': false, 'value': value})
-    elif request.method == 'PUT':
+        return jsonify({'error': False, 'value': value})
+    if request.method == 'PUT':
+        value = request.form['value']
+        print(value)
         curs.execute('''insert into userKeyVal values (%s, %s, %s)''', 
-                        [user, request.arg.get('key'), value])
-        return jsonify({'error': false})
-    else:
+                        [username, key, value])
+        conn.commit()
+        return jsonify({'error': False})
+    if request.method == 'DELETE':
         curs.execute('''delete from userKeyVal where username=%s AND userKey=%s''', 
-                        [user, key])
-        return jsonify({'error': false})
+                        [username, key])
+        conn.commit()
+        return jsonify({'error': False})
 
 @app.before_first_request
 def init_db():

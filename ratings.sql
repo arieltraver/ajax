@@ -9,7 +9,8 @@ create table ratings (
     foreign key (uid) references staff(uid),
     foreign key (tt) references movie(tt),
     primary key (uid, tt)
-);
+)
+ENGINE = InnoDB;
 
 alter table movie
 add avgrating float(2);
